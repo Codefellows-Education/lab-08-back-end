@@ -18,9 +18,9 @@ const app = express();
 app.use(cors());
 
 app.get('/location', getLocation);
-app.get('/weather', getWeather);
-app.get('/yelp', getYelp);
-app.get('/movies', getMovies);
+// app.get('/weather', getWeather);
+// app.get('/yelp', getYelp);
+// app.get('/movies', getMovies);
 
 function Location(query, data) {
   this.search_query = query;
@@ -39,12 +39,57 @@ Location.prototype.save = function () {
 Location.fetchLocations = (query) => {
   const URL = `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${process.env.GEOCODE_API_KEY}`;
   console.log('Got the url: ', URL);
+
+  return superagent.get(URL)
+    .then(data => {
+      console.log('got data from api:');
+      if (!data.body.results.length) {
+        throw 'No Data';
+      } else {
+        let location = new Location(query, data.body.results[0]);
+        location.save();
+
+        return location;
+      }
+    });
+}
+
+function getLocation(request, response) {
+  const locationHandler = {
+    query: request.query.data,
+
+    cacheHit: (results) => {
+      response.send(results.row[0]);
+    },
+
+    cacheMiss: () => {
+      Location.fetchLocations(request.query.data)
+        .then(data => response.send(data));
+    }
+  }
+
+  Location.lookUpLocation(locationHandler);
+}
+
+Location.lookUpLocation = (handler) => {
+  const SQL = `SELECT * FROM locations WHERE search_query = $1;`
+  const values = [handler.query];
+
+  return client.query(SQL, values)
+    .then((results) => {
+      if (results.rowCount > 0) {
+        handler.cacheHit(results);
+      } else {
+        handler.cacheMiss();
+      }
+    })
+    .catch(console.log);
 }
 
 //This will take the location name and run the searchtolatlong() which will store the location information as an object that contains latitude,longitude and location name.
 // app.get('/location', (request, response) => {
 //   // console.log('GET /location', request.query);
-  
+
 //   //runs the searchtolatlong() which takes in the query data from the URL.
 //   searchToLatLong(request.query.data)
 //     .then( locationData => {//location data is the superagent return
@@ -75,92 +120,92 @@ app.listen(PORT, () => console.log(`App is up on http://localhost:${PORT}`));
 
 /////weather
 
-app.get('/weather', (request, response)=>{
-  searchWeather(request.query.data)
-    .then( weatherData => {
-      response.send(weatherData);
-    })
-})
+// app.get('/weather', (request, response)=>{
+//   searchWeather(request.query.data)
+//     .then( weatherData => {
+//       response.send(weatherData);
+//     })
+// })
 
-function searchWeather(location){
-  const URL = `https://api.darksky.net/forecast/${process.env.WEATHER_API_KEY}/${location.latitude},${location.longitude}`;
-  
-  return superagent.get(URL)
-    .then( data => {
-      let weatherData = data.body.daily.data.map( day => {
-        return new Weather(day);
-      })
-      return weatherData;
-    })
-    .catch(error => handleError(error));
-}
+// function searchWeather(location){
+//   const URL = `https://api.darksky.net/forecast/${process.env.WEATHER_API_KEY}/${location.latitude},${location.longitude}`;
 
-function Weather (day) {
-  this.forecast = day.summary;
-  this.time = new Date(day.time * 1000).toString().slice(0,15);
-}
+//   return superagent.get(URL)
+//     .then( data => {
+//       let weatherData = data.body.daily.data.map( day => {
+//         return new Weather(day);
+//       })
+//       return weatherData;
+//     })
+//     .catch(error => handleError(error));
+// }
+
+// function Weather (day) {
+//   this.forecast = day.summary;
+//   this.time = new Date(day.time * 1000).toString().slice(0,15);
+// }
 
 
 ////YELP
 
 
-app.get('/yelp', (request, response) => {
-  searchYelp(request.query.data)//this is the formatted location objecy
-    .then( yelpData => {
-      response.send(yelpData);
-    })
-})
+// app.get('/yelp', (request, response) => {
+//   searchYelp(request.query.data)//this is the formatted location objecy
+//     .then( yelpData => {
+//       response.send(yelpData);
+//     })
+// })
 
-function searchYelp(location){
-  const URL = `https://api.yelp.com/v3/businesses/search?latitude=${location.latitude}&longitude=${location.longitude}&categories=restaurants`;
+// function searchYelp(location){
+//   const URL = `https://api.yelp.com/v3/businesses/search?latitude=${location.latitude}&longitude=${location.longitude}&categories=restaurants`;
 
-  return superagent.get(URL)
-    .set( 'Authorization', `Bearer ${process.env.YELP_API_KEY}`)
-    .then( data => {
-      let yelpData = data.body.businesses.map( item => {
-        return new Business(item);
-      })
-      return yelpData;
-    })
-    .catch(error => handleError(error));
-}
+//   return superagent.get(URL)
+//     .set( 'Authorization', `Bearer ${process.env.YELP_API_KEY}`)
+//     .then( data => {
+//       let yelpData = data.body.businesses.map( item => {
+//         return new Business(item);
+//       })
+//       return yelpData;
+//     })
+//     .catch(error => handleError(error));
+// }
 
-function Business(business) {
-  this.name = business.name;
-  this.image_url = business.image_url;
-  this.price = business.price;
-  this.rating = business.rating;
-  this.url = business.url;
-}
+// function Business(business) {
+//   this.name = business.name;
+//   this.image_url = business.image_url;
+//   this.price = business.price;
+//   this.rating = business.rating;
+//   this.url = business.url;
+// }
 
-//////////MOVIES///////////////
+// //////////MOVIES///////////////
 
-app.get('/movies', (request, response) => {
-  searchMovies(request.query.data)//this is the formatted location objecy
-    .then( movieData => {
-      response.send(movieData);
-    })
-})
+// app.get('/movies', (request, response) => {
+//   searchMovies(request.query.data)//this is the formatted location objecy
+//     .then( movieData => {
+//       response.send(movieData);
+//     })
+// })
 
-function searchMovies(location){
-  const URL = `https://api.themoviedb.org/3/movie/76341?api_key=${process.env.MOVIES_API_KEY}&query=${location.search_query}`;
+// function searchMovies(location){
+//   const URL = `https://api.themoviedb.org/3/movie/76341?api_key=${process.env.MOVIES_API_KEY}&query=${location.search_query}`;
 
-  return superagent.get(URL)
-    .then( data => {
-      return [new Movie(data.body)];
-    })
-    .catch(error => handleError(error));
-}
+//   return superagent.get(URL)
+//     .then( data => {
+//       return [new Movie(data.body)];
+//     })
+//     .catch(error => handleError(error));
+// }
 
-function Movie(movie) {
-  this.title = movie.title;
-  this.overview = movie.overview;
-  this.average_votes = movie.vote_average;
-  this.total_votes = movie.vote_count;
-  this.image_url = 'https://image.tmdb.org/t/p/w500/'+movie.poster_path;
-  this.popularity = movie.popularity;
-  this.released_on = movie.release_date;
-}
+// function Movie(movie) {
+//   this.title = movie.title;
+//   this.overview = movie.overview;
+//   this.average_votes = movie.vote_average;
+//   this.total_votes = movie.vote_count;
+//   this.image_url = 'https://image.tmdb.org/t/p/w500/'+movie.poster_path;
+//   this.popularity = movie.popularity;
+//   this.released_on = movie.release_date;
+// }
 
 
 //////////errors
