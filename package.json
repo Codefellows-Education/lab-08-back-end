@@ -1,0 +1,27 @@
+{
+  "name": "lab-08-back-end",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/applena/lab-08-back-end.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/applena/lab-08-back-end/issues"
+  },
+  "homepage": "https://github.com/applena/lab-08-back-end#readme",
+  "dependencies": {
+    "cours": "1.0.0",
+    "dotenv": "6.1.0",
+    "express": "4.16.4",
+    "pg": "7.5.0",
+    "superagent": "4.0.0-beta.5"
+  }
+}
