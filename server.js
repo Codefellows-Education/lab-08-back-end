@@ -7,9 +7,7 @@ const pg = require('pg');
 const client = new pg.Client(process.env.DATABASE_URL);
 
 client.connect();
-client.on('err', err => {
-  console.log(err);
-})
+client.on('err', err => console.log(err));
 
 require('dotenv').config();
 

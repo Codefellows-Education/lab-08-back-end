@@ -1,5 +1,7 @@
 DROP TABLE IF EXISTS weathers;
 DROP TABLE IF EXISTS locations;
+DROP TABLE IF EXISTS restaurants;
+DROP TABLE IF EXISTS movies;
 
 CREATE TABLE locations(
     id SERIAL PRIMARY KEY,
@@ -15,4 +17,17 @@ CREATE TABLE weathers (
     forecast VARCHAR(255),
     time VARCHAR(255),
     location_id INTEGER NOT NULL REFERENCES locations(id) 
+);
+
+CREATE TABLE restaurants (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255),
+    image_url VARCHAR(255),
+    price SMALLINT,
+    rating SMALLINT,
+    url VARCHAR(255)
+);
+
+CREATE TABLE movies (
+
 );
