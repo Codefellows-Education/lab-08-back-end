@@ -18,7 +18,7 @@
   },
   "homepage": "https://github.com/applena/lab-08-back-end#readme",
   "dependencies": {
-    "cours": "1.0.0",
+    "cors": "2.8.4",
     "dotenv": "6.1.0",
     "express": "4.16.4",
     "pg": "7.5.0",
