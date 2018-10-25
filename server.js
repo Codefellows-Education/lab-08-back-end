@@ -3,13 +3,15 @@
 const express = require('express');
 const cors = require('cors');
 const superagent =require('superagent');
+require('dotenv').config();
 const pg = require('pg');
-const client = new pg.Client(process.env.DATABASE_URL);
+console.log(process.env.DATABASE_URL);
 
+
+
+const client = new pg.Client(process.env.DATABASE_URL);
 client.connect();
 client.on('err', err => console.log(err));
-
-require('dotenv').config();
 
 const PORT = process.env.PORT || 3000;
 
@@ -33,14 +35,14 @@ Location.prototype.save = function () {
   let SQL = `INSERT INTO locations(search_query, formatted_query, latitude, longitude) VALUES($1, $2, $3, $4)`;
   let values = Object.values(this);
 
-  client.query(SQL, values);
+  client.query(SQL,values);
 }
 
-Location.fetchLocations = (query) => {
-  const URL = `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${process.env.GEOCODE_API_KEY}`;
-  console.log('Got the url: ', URL);
+Location.fetchLocation = (query) => {
+  const _URL = `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${process.env.GEOCODE_API_KEY}`;
+  console.log('Got the url: ', _URL);
 
-  return superagent.get(URL)
+  return superagent.get(_URL)
     .then(data => {
       console.log('got data from api:');
       if (!data.body.results.length) {
@@ -63,7 +65,7 @@ function getLocation(request, response) {
     },
 
     cacheMiss: () => {
-      Location.fetchLocations(request.query.data)
+      Location.fetchLocation(request.query.data)
         .then(data => response.send(data));
     }
   }
@@ -72,7 +74,7 @@ function getLocation(request, response) {
 }
 
 Location.lookUpLocation = (handler) => {
-  const SQL = `SELECT * FROM locations WHERE search_query = $1;`
+  const SQL = `SELECT * FROM locations WHERE search_query=$1;`
   const values = [handler.query];
 
   return client.query(SQL, values)
@@ -83,7 +85,7 @@ Location.lookUpLocation = (handler) => {
         handler.cacheMiss();
       }
     })
-    .catch(console.log);
+    .catch(console.error);
 }
 
 //This will take the location name and run the searchtolatlong() which will store the location information as an object that contains latitude,longitude and location name.
