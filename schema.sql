@@ -29,5 +29,12 @@ CREATE TABLE restaurants (
 );
 
 CREATE TABLE movies (
-
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255),
+    overview VARCHAR(750),
+    average_votes INT,
+    total_votes INT,
+    image_url VARCHAR(255),
+    popularity DEC(4, 2),
+    released_on DATE
 );
