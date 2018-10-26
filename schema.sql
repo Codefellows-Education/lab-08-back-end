@@ -40,5 +40,6 @@ CREATE TABLE IF NOT EXISTS movies (
     image_url VARCHAR(255),
     popularity DEC(4, 2),
     released_on DATE,
+    created_at BIGINT,
     search_query VARCHAR(255)
 );
