@@ -16,52 +16,24 @@ client.on('err', err => console.log(err));
 const PORT = process.env.PORT || 3000;
 
 const app = express();
+app.listen(PORT, () => console.log(`App is up on http://localhost:${PORT}`));
 
 app.use(cors());
 
-app.get('/location', getLocation);
-// app.get('/weather', getWeather);
 // app.get('/yelp', getYelp);
 // app.get('/movies', getMovies);
 
-function Location(query, data) {
-  this.search_query = query;
-  this.formatted_query = data.formatted_address;
-  this.latitude = data.geometry.location.lat;
-  this.longitude = data.geometry.location.lng;
-}
 
-Location.prototype.save = function () {
-  let SQL = `INSERT INTO locations(search_query, formatted_query, latitude, longitude) VALUES($1, $2, $3, $4)`;
-  let values = Object.values(this);
 
-  client.query(SQL,values);
-}
-
-Location.fetchLocation = (query) => {
-  const _URL = `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${process.env.GEOCODE_API_KEY}`;
-  console.log('Got the url: ', _URL);
-
-  return superagent.get(_URL)
-    .then(data => {
-      console.log('got data from api:');
-      if (!data.body.results.length) {
-        throw 'No Data';
-      } else {
-        let location = new Location(query, data.body.results[0]);
-        location.save();
-
-        return location;
-      }
-    });
-}
+app.get('/location', getLocation);
+app.get('/weather', getWeather);
 
 function getLocation(request, response) {
   const locationHandler = {
     query: request.query.data,
 
     cacheHit: (results) => {
-      response.send(results.row[0]);
+      response.send(results.rows[0]);
     },
 
     cacheMiss: () => {
@@ -71,6 +43,13 @@ function getLocation(request, response) {
   }
 
   Location.lookUpLocation(locationHandler);
+}
+
+function Location(query, data) {
+  this.search_query = query;
+  this.formatted_query = data.formatted_address;
+  this.latitude = data.geometry.location.lat;
+  this.longitude = data.geometry.location.lng;
 }
 
 Location.lookUpLocation = (handler) => {
@@ -88,99 +67,207 @@ Location.lookUpLocation = (handler) => {
     .catch(console.error);
 }
 
-//This will take the location name and run the searchtolatlong() which will store the location information as an object that contains latitude,longitude and location name.
-// app.get('/location', (request, response) => {
-//   // console.log('GET /location', request.query);
+Location.fetchLocation = (query) => {
+  const URL = `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${process.env.GEOCODE_API_KEY}`;
+  console.log('Got the url: ', URL);
 
-//   //runs the searchtolatlong() which takes in the query data from the URL.
-//   searchToLatLong(request.query.data)
-//     .then( locationData => {//location data is the superagent return
-//       response.send(locationData);
-//     })
-//     //This will handle our errors
-//     .catch ( error => handleError(error,response));
-// });
+  return superagent.get(URL)
+    .then(data => {
+      console.log('got location data from google maps API:');
+      if (!data.body.results.length) throw 'No Data';
+      else {
+        let location = new Location(query, data.body.results[0]);
+        location.save();
 
-app.listen(PORT, () => console.log(`App is up on http://localhost:${PORT}`));
-
-//This function takes in the query and makes the request to the API,then format the data that it gets into the object that we need.
-// function searchToLatLong(query) {
-//   // console.log('getting',URL);
-
-//   return superagent.get(URL)
-//     .then( data => {
-//       let location = new Location(data.body.results[0]);
-
-//       //This line fills in the Actual search query to the object.
-//       location.search_query = query;
-//       return location;
-//     })
-//     .catch(error => handleError(error));
-// }
+        return location;
+      }
+    });
+}
+Location.prototype.save = function () {
+  let SQL = `INSERT INTO locations(search_query, formatted_query, latitude, longitude) VALUES($1, $2, $3, $4)`;
+  let values = Object.values(this);
+  client.query(SQL,values)
+    .then(result => {
+      console.log('insert',result)
+    })
+    .catch(e => console.error(e.stack));
+}
 
 
 
-/////weather
 
-// app.get('/weather', (request, response)=>{
-//   searchWeather(request.query.data)
-//     .then( weatherData => {
-//       response.send(weatherData);
-//     })
-// })
 
-// function searchWeather(location){
-//   const URL = `https://api.darksky.net/forecast/${process.env.WEATHER_API_KEY}/${location.latitude},${location.longitude}`;
 
-//   return superagent.get(URL)
-//     .then( data => {
-//       let weatherData = data.body.daily.data.map( day => {
-//         return new Weather(day);
-//       })
-//       return weatherData;
-//     })
-//     .catch(error => handleError(error));
-// }
+/////weather////////////////
 
-// function Weather (day) {
-//   this.forecast = day.summary;
-//   this.time = new Date(day.time * 1000).toString().slice(0,15);
-// }
 
+/**
+ * getWeather is an API handler for fetching weather related to a location search string
+ * request.query.data is a full location object (minus the location_id)
+ * 
+ * @param {object} request 
+ * @param {object} response 
+ */
+function getWeather(request, response) {
+  const handler = {
+    search_query: request.query.data.search_query,
+
+    cacheHit: (result) => {
+      response.send(result.rows);
+    },
+
+    cacheMiss: () => {
+      Weather.fetchWeather(request.query.data)
+        .then(data => response.send(data));
+    }
+  }
+
+  Weather.lookUpWeather(handler);
+}
+
+function Weather (day, search_query) {
+  this.forecast = day.summary;
+  this.time = new Date(day.time * 1000).toString().slice(0,15);
+  this.created_at = new Date().getTime();
+  this.search_query = search_query;
+}
+
+Weather.prototype.save = function () {
+  let SQL = `INSERT INTO weathers(forecast, time, created_at, search_query) VALUES($1, $2, $3, $4)`;
+  let values = Object.values(this);
+
+  client.query(SQL,values);
+}
+
+Weather.fetchWeather = (locationObject) => {
+  const URL = `https://api.darksky.net/forecast/${process.env.WEATHER_API_KEY}/${locationObject.latitude},${locationObject.longitude}`;
+
+  return superagent.get(URL)
+    .then(data => {
+      if (!data.body.daily.data.length) throw 'No Data';
+      else {
+        let weatherData = data.body.daily.data.map( day => {
+          let weather = new Weather(day, locationObject.search_query);
+          weather.save();
+          return weather;
+        })
+        return weatherData;
+      }
+    });
+}
+
+
+
+Weather.lookUpWeather = (handler) => {
+  const SQL = `SELECT * FROM weathers WHERE search_query=$1;`
+  const values = [handler.search_query];
+
+  return client.query(SQL, values)
+    .then((results) => {
+      if (results.rowCount > 0) {
+        console.log('got weather data from database');
+        handler.cacheHit(results);
+      } else {
+        console.log('got weather data from API');
+        handler.cacheMiss();
+      }
+    })
+    .catch(console.error);
+}
 
 ////YELP
 
+app.get('/yelp', getRestaurants);
 
-// app.get('/yelp', (request, response) => {
-//   searchYelp(request.query.data)//this is the formatted location objecy
-//     .then( yelpData => {
-//       response.send(yelpData);
-//     })
-// })
+function getRestaurants(request, response) {
+  const handler = {
+    search_query: request.query.data.search_query,
 
-// function searchYelp(location){
-//   const URL = `https://api.yelp.com/v3/businesses/search?latitude=${location.latitude}&longitude=${location.longitude}&categories=restaurants`;
+    cacheHit: (result) => {
+      response.send(result.rows);
+    },
 
-//   return superagent.get(URL)
-//     .set( 'Authorization', `Bearer ${process.env.YELP_API_KEY}`)
-//     .then( data => {
-//       let yelpData = data.body.businesses.map( item => {
-//         return new Business(item);
-//       })
-//       return yelpData;
+    cacheMiss: () => {
+      Restaurants.fetchRestaurants(request.query.data)
+        .then(data => response.send(data));
+    }
+  }
+
+  Restaurants.lookUpRestaurants(handler);
+}
+
+function Restaurants(restaurants, search_query) {
+  this.name = restaurants.name;
+  this.image_url = restaurants.image_url;
+  this.price = restaurants.price;
+  this.rating = restaurants.rating;
+  this.url = restaurants.url;
+  this.created_at = new Date().getTime();
+  this.search_query = search_query;
+}
+
+Restaurants.prototype.save = function () {
+  let SQL = `INSERT INTO restaurants(name, image_url, price, rating, url, created_at, search_query) VALUES($1, $2, $3, $4, $5, $6, $7)`;
+  let values = Object.values(this);
+
+  client.query(SQL,values);
+}
+
+Restaurants.fetchRestaurants = (locationObject) => {
+  
+  const URL = `https://api.yelp.com/v3/businesses/search?latitude=${locationObject.latitude}&longitude=${locationObject.longitude}&categories=restaurants`;
+
+  return superagent.get(URL)
+    .set( 'Authorization', `Bearer ${process.env.YELP_API_KEY}`)
+    .then( data => {
+      if (!data.body.businesses.length) throw 'No Data';
+      else {
+        console.log('Got the url: ', URL);
+        let restaurantsData = data.body.businesses.map( item => {
+          let restaurants = new Restaurants(item, locationObject.search_query);
+          restaurants.save();
+          return restaurants;
+        })
+        return restaurantsData;
+      }
+    })
+    .catch(error => handleError(error));
+}
+
+Restaurants.lookUpRestaurants = (handler) => {
+  const SQL = `SELECT * FROM restaurants WHERE search_query=$1;`
+  const values = [handler.search_query];
+
+  return client.query(SQL, values)
+    .then((results) => {
+      if (results.rowCount > 0) {
+        console.log('got restaurants data from database');
+        handler.cacheHit(results);
+      } else {
+        console.log('got restaurants data from API');
+        handler.cacheMiss();
+      }
+    })
+    .catch(console.error);
+}
+// //////////MOVIES///////////////
+
+// app.get('/movies', (request, response) => {
+//   searchMovies(request.query.data)
+//     .then(movieData => {
+//         response.send(movieData);
 //     })
 //     .catch(error => handleError(error));
-// }
+//   })
 
-// function Business(business) {
-//   this.name = business.name;
-//   this.image_url = business.image_url;
-//   this.price = business.price;
-//   this.rating = business.rating;
-//   this.url = business.url;
+// function searchMovies (query) {
+//   superagent.get(movieapi formatted url)
+//     .then ( data => {
+//       normalizeData(data);//pass it thorugh a constructor
+//       //send response back to the front end ()
+//       return normalizedData;
+//     })
 // }
-
-// //////////MOVIES///////////////
 
 // app.get('/movies', (request, response) => {
 //   searchMovies(request.query.data)//this is the formatted location objecy
@@ -208,6 +295,7 @@ app.listen(PORT, () => console.log(`App is up on http://localhost:${PORT}`));
 //   this.popularity = movie.popularity;
 //   this.released_on = movie.release_date;
 // }
+////////////////Meet Up///////////////////
 
 
 //////////errors
