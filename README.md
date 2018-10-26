@@ -29,9 +29,11 @@ This application was designed using HTML, CSS, javaScript, and Node.js. It also 
 
 10-24-2018 11:48 - Application now populates both the map and the weather from API calls
 
-<!-- Use this area to document the iterative changes made to your application as each feature is successfully implemented. Use time stamps. Here's an examples: -->
+10-25-2018 1:00 - Creted the Table Schemas
 
-01-01-2001 4:59pm - Application now has a fully-functional express server, with a GET route for the location resource.
+10-26-2018 10:13am - Location, Weather, Yelp and Movies are all working with functioning databases
 
 ## Credits and Collaborations
 https://stackoverflow.com/questions/847185/convert-a-unix-timestamp-to-time-in-javascript
+Adam Eivy for offering guidance and suggestions
+John and Nick and the amazing TAs
