@@ -69,7 +69,6 @@ Location.lookUpLocation = (handler) => {
 
 Location.fetchLocation = (query) => {
   const URL = `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${process.env.GEOCODE_API_KEY}`;
-  console.log('Got the url: ', URL);
 
   return superagent.get(URL)
     .then(data => {
@@ -87,8 +86,8 @@ Location.prototype.save = function () {
   let SQL = `INSERT INTO locations(search_query, formatted_query, latitude, longitude) VALUES($1, $2, $3, $4)`;
   let values = Object.values(this);
   client.query(SQL,values)
-    .then(result => {
-      console.log('insert',result)
+    .then(() => {
+      // console.log('insert',result)
     })
     .catch(e => console.error(e.stack));
 }

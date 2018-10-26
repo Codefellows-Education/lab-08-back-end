@@ -34,12 +34,12 @@ CREATE TABLE IF NOT EXISTS restaurants (
 CREATE TABLE IF NOT EXISTS movies (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255),
-    overview VARCHAR(750),
-    average_votes INT,
+    overview TEXT,
+    average_votes FLOAT,
     total_votes INT,
     image_url VARCHAR(255),
-    popularity DEC(4, 2),
-    released_on DATE,
+    popularity FLOAT,
+    released_on VARCHAR(255),
     created_at BIGINT,
     search_query VARCHAR(255)
 );
